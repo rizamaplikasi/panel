@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Web Builder</title>
+    <!-- Menggunakan Tailwind CSS untuk desain yang rapi dan profesional -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen text-gray-800">
+
+    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 w-full max-w-md">
+        <div class="mb-8 text-center">
+            <h1 class="text-2xl font-semibold text-gray-900">Deploy ke Vercel</h1>
+            <p class="text-sm text-gray-500 mt-2">Unggah file HTML dan dapatkan link website kamu.</p>
+        </div>
+
+        <form id="deployForm" class="space-y-5">
+            <!-- Input Nama Web -->
+            <div>
+                <label for="projectName" class="block text-sm font-medium text-gray-700 mb-1">Nama Project</label>
+                <input type="text" id="projectName" required placeholder="misal: web-portofolio-ku" 
+                    class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-black focus:border-black outline-none transition-all text-sm">
+            </div>
+
+            <!-- Input File HTML -->
+            <div>
+                <label for="htmlFile" class="block text-sm font-medium text-gray-700 mb-1">File HTML</label>
+                <div class="relative border-2 border-dashed border-gray-200 rounded-lg px-4 py-6 text-center hover:bg-gray-50 transition-colors">
+                    <input type="file" id="htmlFile" accept=".html" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <span class="text-sm text-gray-500">Pilih atau tarik file .html ke sini</span>
+                </div>
+            </div>
+
+            <!-- Tombol Submit -->
+            <button type="submit" id="submitBtn" 
+                class="w-full bg-black text-white font-medium py-2.5 rounded-lg hover:bg-gray-800 transition-colors flex justify-center items-center">
+                <span>Deploy Website</span>
+            </button>
+        </form>
+
+        <!-- Area Hasil -->
+        <div id="resultArea" class="hidden mt-6 p-4 bg-green-50 border border-green-100 rounded-lg text-center text-sm">
+            <p class="text-green-800 mb-2">Deploy Berhasil!</p>
+            <a id="deployLink" href="#" target="_blank" class="text-green-600 font-semibold hover:underline break-all"></a>
+        </div>
+        
+        <!-- Area Error -->
+        <div id="errorArea" class="hidden mt-6 p-4 bg-red-50 border border-red-100 rounded-lg text-center text-sm text-red-600">
+        </div>
+    </div>
+
+    <script>
+        // PENTING: Masukkan Vercel Token kamu di sini
+        // Cara dapatkan token: Vercel Dashboard -> Settings -> Tokens
+        const VERCEL_TOKEN = 'MASUKKAN_TOKEN_VERCEL_KAMU_DI_SINI'; 
+
+        document.getElementById('deployForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const projectName = document.getElementById('projectName').value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+            const fileInput = document.getElementById('htmlFile');
+            const submitBtn = document.getElementById('submitBtn');
+            const resultArea = document.getElementById('resultArea');
+            const errorArea = document.getElementById('errorArea');
+
+            if (!fileInput.files.length) return;
+
+            // Reset UI
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Mendeploy...';
+            resultArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+
+            try {
+                // Membaca isi file HTML yang diunggah
+                const file = fileInput.files[0];
+                const fileContent = await file.text();
+
+                // Mengirim ke Vercel API
+                const response = await fetch('https://api.vercel.com/v13/deployments', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${VERCEL_TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: projectName,
+                        files: [
+                            {
+                                file: "index.html",
+                                data: fileContent
+                            }
+                        ],
+                        target: "production"
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'Gagal melakukan deploy');
+                }
+
+                // Menampilkan hasil
+                const url = `https://${data.url}`;
+                document.getElementById('deployLink').href = url;
+                document.getElementById('deployLink').textContent = url;
+                resultArea.classList.remove('hidden');
+
+            } catch (error) {
+                errorArea.textContent = error.message;
+                errorArea.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Deploy Website';
+            }
+        });
+    </script>
+</body>
+</html>
